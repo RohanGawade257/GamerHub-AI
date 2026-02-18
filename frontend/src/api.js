@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const API_BASE_URL = "http://localhost:5001/api";
+export const API_BASE_URL = "https://gamerhub-ai.onrender.com/api";
 export const TOKEN_STORAGE_KEY = "token";
 export const USER_STORAGE_KEY = "user";
 

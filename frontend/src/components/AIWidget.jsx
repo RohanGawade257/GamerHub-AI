@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 function AIWidget({ apiUrl }) {
-  const apiEndpoint = apiUrl || "http://localhost:5000/api/chat";
+  const apiEndpoint = apiUrl || "https://gamerhub-ai.onrender.com/api/chat";
   const SEND_DEBOUNCE_MS = 300;
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");

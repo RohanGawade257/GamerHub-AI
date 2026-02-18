@@ -39,7 +39,7 @@ function App() {
           </Routes>
         </main>
 
-        <AIWidget apiUrl="http://localhost:5000/api/chat" />
+        <AIWidget apiUrl="https://gamerhub-ai.onrender.com/api/chat" />
       </div>
     </AuthProvider>
   );
