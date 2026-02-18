@@ -54,6 +54,11 @@ aiApp.use(express.urlencoded({ extended: true, limit: "10mb" }));
 aiApp.use(jsonSyntaxGuard);
 
 aiApp.use("/api/chat", chatRoutes);
+aiApp.use("/api/auth", authRoutes);
+aiApp.use("/api/users", userRoutes);
+aiApp.use("/api/user", userRoutes);
+aiApp.use("/api/games", gameRoutes);
+aiApp.use("/api/community", communityRoutes);
 aiApp.get("/health", (_req, res) => {
   return res.status(200).json({ status: "ok", service: "ai" });
 });
