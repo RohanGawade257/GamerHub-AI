@@ -49,7 +49,8 @@ aiApp.use(
     origin: process.env.CORS_ORIGIN || "*",
   }),
 );
-aiApp.use(express.json({ limit: "1mb" }));
+aiApp.use(express.json({ limit: "10mb" }));
+aiApp.use(express.urlencoded({ extended: true, limit: "10mb" }));
 aiApp.use(jsonSyntaxGuard);
 
 aiApp.use("/api/chat", chatRoutes);
@@ -66,11 +67,13 @@ sportsApp.use(
     credentials: true,
   }),
 );
-sportsApp.use(express.json({ limit: "1mb" }));
+sportsApp.use(express.json({ limit: "10mb" }));
+sportsApp.use(express.urlencoded({ extended: true, limit: "10mb" }));
 sportsApp.use(jsonSyntaxGuard);
 
 sportsApp.use("/api/auth", authRoutes);
 sportsApp.use("/api/users", userRoutes);
+sportsApp.use("/api/user", userRoutes);
 sportsApp.use("/api/games", gameRoutes);
 sportsApp.use("/api/community", communityRoutes);
 

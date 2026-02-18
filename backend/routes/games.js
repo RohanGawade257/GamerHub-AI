@@ -5,13 +5,15 @@ const authMiddleware = require("../middleware/auth");
 const Game = require("../models/Game");
 const User = require("../models/User");
 const Chat = require("../models/Chat");
+const Community = require("../models/Community");
 const { autoFormTeams } = require("../utils/teamFormation");
 
 const router = express.Router();
 
 const GAME_POPULATION = [
-  { path: "createdBy", select: "name email location skillLevel preferredSports profileImage bio socialLinks isOnline" },
-  { path: "participants", select: "name email location skillLevel preferredSports profileImage bio socialLinks isOnline" },
+  { path: "createdBy", select: "name email age phone location skillLevel preferredSports profileImage bio socialLinks isOnline" },
+  { path: "creatorId", select: "name email age phone location skillLevel preferredSports profileImage bio socialLinks isOnline" },
+  { path: "participants", select: "name email age phone location skillLevel preferredSports profileImage bio socialLinks isOnline" },
   { path: "teams.teamA", select: "name location skillLevel preferredSports profileImage isOnline" },
   { path: "teams.teamB", select: "name location skillLevel preferredSports profileImage isOnline" },
 ];
@@ -29,6 +31,79 @@ function isValidObjectId(id) {
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parsePlayerAge(age) {
+  const parsedAge = Number(age);
+  if (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120) {
+    return null;
+  }
+
+  return parsedAge;
+}
+
+function normalizeJoinPayload(payload) {
+  const normalizedName = String(payload?.name || "").trim();
+  const normalizedSkill = String(payload?.skill || "").trim();
+  const normalizedPhone = String(payload?.phone || "").trim();
+  const normalizedInviteCode = String(payload?.inviteCode || "").trim().toUpperCase();
+  const parsedAge = parsePlayerAge(payload?.age);
+
+  if (!normalizedName) {
+    return { error: "name is required" };
+  }
+
+  if (!normalizedSkill) {
+    return { error: "skill is required" };
+  }
+
+  if (parsedAge === null) {
+    return { error: "age must be an integer between 1 and 120" };
+  }
+
+  if (!normalizedPhone) {
+    return { error: "phone is required" };
+  }
+
+  return {
+    value: {
+      name: normalizedName,
+      skill: normalizedSkill,
+      age: parsedAge,
+      phone: normalizedPhone,
+      inviteCode: normalizedInviteCode,
+    },
+  };
+}
+
+function buildJoinedPlayerFromUser(user) {
+  const parsedAge = parsePlayerAge(user?.age);
+  const normalizedPhone = String(user?.phone || "").trim();
+
+  return {
+    userId: user._id,
+    name: String(user?.name || "Host"),
+    skill: String(user?.skillLevel ?? 1),
+    age: parsedAge || 18,
+    phone: normalizedPhone || "Not provided",
+    joinedAt: new Date(),
+  };
+}
+
+function hasUserJoined(game, userId) {
+  const normalizedUserId = String(userId || "");
+
+  const joinedParticipants = game.participants.some((participantId) => {
+    return String(participantId) === normalizedUserId;
+  });
+
+  if (joinedParticipants) {
+    return true;
+  }
+
+  return (game.joinedPlayers || []).some((joinedPlayer) => {
+    return String(joinedPlayer.userId) === normalizedUserId;
+  });
 }
 
 async function loadParticipantsForGame(game) {
@@ -56,6 +131,8 @@ router.post("/create", authMiddleware, async (req, res) => {
       maxPlayers,
       skillRequirement,
       description,
+      thumbnail,
+      communityCode,
     } = req.body || {};
 
     if (!sport || !dateTime || !location || !maxPlayers) {
@@ -79,16 +156,26 @@ router.post("/create", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "skillRequirement must be between 1 and 5" });
     }
 
+    const creatorProfile = await User.findById(req.user.id).select("_id name skillLevel age phone");
+    if (!creatorProfile) {
+      return res.status(404).json({ error: "Creator account not found" });
+    }
+
     const game = await Game.create({
       sport: String(sport).trim(),
+      date: parsedDate,
       dateTime: parsedDate,
       location: String(location).trim(),
       maxPlayers: parsedMaxPlayers,
       currentPlayers: 1,
       skillRequirement: parsedSkillRequirement,
       description: String(description || "").trim(),
+      thumbnail: String(thumbnail || "").trim(),
+      communityCode: String(communityCode || "").trim().toUpperCase(),
+      creatorId: req.user.id,
       createdBy: req.user.id,
       participants: [req.user.id],
+      joinedPlayers: [buildJoinedPlayerFromUser(creatorProfile)],
       teams: {
         teamA: [],
         teamB: [],
@@ -142,6 +229,38 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/:id/players", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: "Invalid game id" });
+    }
+
+    const game = await Game.findById(id).select("createdBy joinedPlayers");
+    if (!game) {
+      return res.status(404).json({ error: "Game not found" });
+    }
+
+    if (String(game.createdBy) !== req.user.id) {
+      return res.status(403).json({ error: "Only the game creator can view joined players" });
+    }
+
+    const players = (game.joinedPlayers || []).map((player) => ({
+      userId: String(player.userId || ""),
+      name: player.name,
+      skill: player.skill,
+      age: player.age,
+      phone: player.phone,
+      joinedAt: player.joinedAt,
+    }));
+
+    return res.json({ players });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Unable to fetch joined players" });
+  }
+});
+
 router.get("/:id/messages", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -181,14 +300,17 @@ router.post("/:id/join", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Invalid game id" });
     }
 
+    const joinPayload = normalizeJoinPayload(req.body || {});
+    if (joinPayload.error) {
+      return res.status(400).json({ error: joinPayload.error });
+    }
+
     const game = await Game.findById(id);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
 
-    const alreadyJoined = game.participants.some((participantId) => {
-      return String(participantId) === req.user.id;
-    });
+    const alreadyJoined = hasUserJoined(game, req.user.id);
 
     if (alreadyJoined) {
       const existingGame = await applyGamePopulation(Game.findById(game._id));
@@ -199,7 +321,26 @@ router.post("/:id/join", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Game is already full" });
     }
 
+    const matchCommunityCode = String(game.communityCode || "").trim().toUpperCase();
+    if (matchCommunityCode) {
+      if (!joinPayload.value.inviteCode) {
+        return res.status(400).json({ error: "inviteCode is required for this match" });
+      }
+
+      if (joinPayload.value.inviteCode !== matchCommunityCode) {
+        return res.status(400).json({ error: "Invalid community code for this match" });
+      }
+    }
+
     game.participants.push(req.user.id);
+    game.joinedPlayers.push({
+      userId: req.user.id,
+      name: joinPayload.value.name,
+      skill: joinPayload.value.skill,
+      age: joinPayload.value.age,
+      phone: joinPayload.value.phone,
+      joinedAt: new Date(),
+    });
     game.currentPlayers = game.participants.length;
 
     if (game.currentPlayers >= game.maxPlayers) {
@@ -212,11 +353,31 @@ router.post("/:id/join", authMiddleware, async (req, res) => {
       };
     }
 
+    let community = null;
+    let alreadyCommunityMember = true;
+
+    if (joinPayload.value.inviteCode) {
+      community = await Community.findOne({ inviteCode: joinPayload.value.inviteCode });
+      if (community) {
+        alreadyCommunityMember = community.members.some((memberId) => String(memberId) === req.user.id);
+        if (!alreadyCommunityMember) {
+          community.members.push(req.user.id);
+        }
+      }
+    }
+
     await game.save();
+
+    if (community && !alreadyCommunityMember) {
+      await community.save();
+    }
 
     const populatedGame = await applyGamePopulation(Game.findById(game._id));
 
-    return res.json({ game: populatedGame });
+    return res.json({
+      game: populatedGame,
+      message: community && !alreadyCommunityMember ? "Joined game and community successfully" : "Joined game successfully",
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message || "Unable to join game" });
   }

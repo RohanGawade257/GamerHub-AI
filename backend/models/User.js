@@ -50,8 +50,9 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     preferredSports: {
-      type: [String],
-      default: [],
+      type: String,
+      default: "",
+      trim: true,
     },
     location: {
       type: String,
@@ -66,6 +67,18 @@ const userSchema = new mongoose.Schema(
       min: 1,
       max: 5,
       default: 3,
+    },
+    age: {
+      type: Number,
+      min: 1,
+      max: 120,
+      default: null,
+    },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 30,
     },
     profileImage: {
       type: String,

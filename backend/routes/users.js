@@ -8,6 +8,14 @@ const { isUserOnline } = require("../socket");
 const router = express.Router();
 
 function normalizePreferredSports(preferredSports) {
+  if (preferredSports === undefined) {
+    return undefined;
+  }
+
+  if (typeof preferredSports === "string") {
+    return preferredSports.trim();
+  }
+
   if (!Array.isArray(preferredSports)) {
     return undefined;
   }
@@ -15,7 +23,8 @@ function normalizePreferredSports(preferredSports) {
   return preferredSports
     .map((sport) => String(sport || "").trim())
     .filter(Boolean)
-    .slice(0, 10);
+    .slice(0, 10)
+    .join(", ");
 }
 
 function normalizeSocialLinks(socialLinks) {
@@ -31,6 +40,50 @@ function normalizeSocialLinks(socialLinks) {
     }))
     .filter((entry) => entry.platform && entry.label && entry.url)
     .slice(0, 10);
+}
+
+function normalizeProfileSocialLinks(socialLinks) {
+  if (socialLinks === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(socialLinks)) {
+    return null;
+  }
+
+  return socialLinks
+    .map((entry) => ({
+      platform: String(entry?.platform || "").trim(),
+      label: String(entry?.label || "").trim(),
+      url: String(entry?.url || "").trim(),
+    }))
+    .filter((entry) => entry.platform && entry.label && entry.url)
+    .slice(0, 10);
+}
+
+function parseAge(age, { required = false } = {}) {
+  if (age === undefined || age === null || String(age).trim() === "") {
+    if (required) {
+      return {
+        error: "age is required",
+      };
+    }
+
+    return {
+      value: null,
+    };
+  }
+
+  const parsedAge = Number(age);
+  if (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120) {
+    return {
+      error: "age must be an integer between 1 and 120",
+    };
+  }
+
+  return {
+    value: parsedAge,
+  };
 }
 
 function isValidObjectId(id) {
@@ -52,6 +105,95 @@ router.get("/me", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ error: error.message || "Unable to fetch profile" });
+  }
+});
+
+router.get("/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({
+      user: {
+        ...user.toObject(),
+        isOnline: isUserOnline(user._id),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Unable to fetch profile" });
+  }
+});
+
+router.put("/profile", authMiddleware, async (req, res) => {
+  try {
+    const {
+      profileImage,
+      age,
+      location,
+      bio,
+      socialLinks,
+      phone,
+      preferredSports,
+    } = req.body || {};
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (profileImage !== undefined) {
+      user.profileImage = String(profileImage || "").trim();
+    }
+
+    if (age !== undefined) {
+      const ageResult = parseAge(age);
+      if (ageResult.error) {
+        return res.status(400).json({ error: ageResult.error });
+      }
+      user.age = ageResult.value;
+    }
+
+    if (location !== undefined) {
+      const normalizedLocation = String(location || "").trim();
+      if (!normalizedLocation) {
+        return res.status(400).json({ error: "location is required" });
+      }
+      user.location = normalizedLocation;
+    }
+
+    if (bio !== undefined) {
+      user.bio = String(bio || "").trim();
+    }
+
+    const normalizedSocialLinks = normalizeProfileSocialLinks(socialLinks);
+    if (normalizedSocialLinks === null) {
+      return res.status(400).json({ error: "socialLinks must be an array" });
+    }
+    if (normalizedSocialLinks !== undefined) {
+      user.socialLinks = normalizedSocialLinks;
+    }
+
+    if (phone !== undefined) {
+      user.phone = String(phone || "").trim();
+    }
+
+    if (preferredSports !== undefined) {
+      user.preferredSports = String(preferredSports || "").trim();
+    }
+
+    await user.save();
+
+    return res.json({
+      user: {
+        ...user.toObject(),
+        isOnline: isUserOnline(user._id),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || "Unable to update profile" });
   }
 });
 
@@ -112,6 +254,19 @@ router.put("/update", authMiddleware, async (req, res) => {
         return res.status(400).json({ error: "skillLevel must be between 1 and 5" });
       }
       user.skillLevel = parsedSkill;
+    }
+
+    if (updates.age !== undefined) {
+      const ageResult = parseAge(updates.age);
+      if (ageResult.error) {
+        return res.status(400).json({ error: ageResult.error });
+      }
+      user.age = ageResult.value;
+    }
+
+    if (updates.phone !== undefined) {
+      const normalizedPhone = String(updates.phone || "").trim();
+      user.phone = normalizedPhone;
     }
 
     const normalizedSports = normalizePreferredSports(updates.preferredSports);

@@ -21,8 +21,18 @@ function formatDate(dateTime) {
   return parsedDate.toLocaleString();
 }
 
-function MatchCard({ game, currentUserId, onJoin, isJoining }) {
+function copyToClipboard(value) {
+  if (!value || !navigator?.clipboard?.writeText) {
+    return;
+  }
+
+  void navigator.clipboard.writeText(value);
+}
+
+function MatchCard({ game, currentUserId, onJoin }) {
   const participantIds = Array.isArray(game.participants) ? game.participants.map((participant) => getId(participant)) : [];
+  const communityCode = String(game.communityCode || "").trim();
+  const thumbnail = String(game.thumbnail || "").trim();
 
   const hasJoined = participantIds.includes(String(currentUserId || ""));
   const isFull = Number(game.currentPlayers) >= Number(game.maxPlayers);
@@ -36,6 +46,16 @@ function MatchCard({ game, currentUserId, onJoin, isJoining }) {
           Skill {game.skillRequirement}
         </span>
       </div>
+
+      {thumbnail ? (
+        <div className="mt-3 aspect-video overflow-hidden rounded-xl">
+          <img
+            src={thumbnail}
+            alt={`${game.sport} thumbnail`}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : null}
 
       <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{game.description || "No description provided."}</p>
       <div className="mt-3 h-1 w-16 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-300 group-hover:w-28" />
@@ -60,6 +80,18 @@ function MatchCard({ game, currentUserId, onJoin, isJoining }) {
             game.createdBy?.name || "Unknown"
           )}
         </p>
+        {communityCode ? (
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <span>Community Code: {communityCode}</span>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(communityCode)}
+              className="rounded bg-white px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-gray-800 dark:text-blue-300"
+            >
+              Copy
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-4 flex items-center gap-2">
@@ -67,9 +99,9 @@ function MatchCard({ game, currentUserId, onJoin, isJoining }) {
           type="button"
           className="rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
           onClick={() => onJoin(game._id)}
-          disabled={isJoining || hasJoined || isFull}
+          disabled={hasJoined || isFull}
         >
-          {hasJoined ? "Joined" : isFull ? "Full" : isJoining ? "Joining..." : "Join"}
+          {hasJoined ? "Joined" : isFull ? "Full" : "Join Match"}
         </button>
 
         <Link

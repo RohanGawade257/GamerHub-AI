@@ -17,6 +17,9 @@ function linkClassName({ isActive }) {
 function Navbar() {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
+  const displayName = user?.name || "Player";
+  const profileImage = String(user?.profileImage || "").trim();
+  const avatarFallback = String(displayName).trim().charAt(0).toUpperCase() || "P";
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY);
@@ -79,9 +82,6 @@ function Navbar() {
               <NavLink to="/join-community" className={linkClassName}>
                 Join Code
               </NavLink>
-              <span className="rounded-xl border border-white/60 bg-white/85 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-800/90 dark:text-zinc-200">
-                {user?.name || "Player"}
-              </span>
             </>
           ) : (
             <>
@@ -120,6 +120,22 @@ function Navbar() {
               Logout
             </button>
           )}
+
+          {token ? (
+            <div className="ml-2 flex items-center gap-3 rounded-xl border border-white/60 bg-white px-4 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-800">
+              <div className="relative">
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-200">
+                  {profileImage ? (
+                    <img src={profileImage} alt={`${displayName} avatar`} className="h-full w-full object-cover" />
+                  ) : (
+                    avatarFallback
+                  )}
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-zinc-800" />
+              </div>
+              <span className="text-lg font-semibold text-slate-800 dark:text-zinc-100">{displayName}</span>
+            </div>
+          ) : null}
         </div>
       </div>
     </header>

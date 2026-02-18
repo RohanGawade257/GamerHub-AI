@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import Filters from "../components/Filters";
 import MatchCard from "../components/MatchCard";
@@ -23,11 +23,11 @@ function formatDate(dateTime) {
 
 function DashboardPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [joiningId, setJoiningId] = useState("");
 
   const loadGames = useCallback(async () => {
     setError("");
@@ -69,18 +69,9 @@ function DashboardPage() {
       .slice(0, 3);
   }, [games]);
 
-  const handleJoinGame = async (gameId) => {
-    setJoiningId(gameId);
+  const handleJoinGame = (gameId) => {
     setError("");
-
-    try {
-      await api.post(`/games/${gameId}/join`);
-      await loadGames();
-    } catch (requestError) {
-      setError(requestError?.response?.data?.error || "Unable to join match");
-    } finally {
-      setJoiningId("");
-    }
+    navigate(`/game/${gameId}?join=1`);
   };
 
   return (
@@ -158,7 +149,6 @@ function DashboardPage() {
                 game={game}
                 currentUserId={user?._id}
                 onJoin={handleJoinGame}
-                isJoining={joiningId === game._id}
               />
             ))}
           </div>

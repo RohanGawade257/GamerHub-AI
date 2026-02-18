@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import api from "../api";
 import { useAuth } from "../context/AuthContext";
 
 function createEmptySocialLink() {
@@ -10,11 +11,41 @@ function createEmptySocialLink() {
   };
 }
 
+function mapUserToFormState(profile) {
+  const normalizedPreferredSports = Array.isArray(profile?.preferredSports)
+    ? profile.preferredSports.join(", ")
+    : String(profile?.preferredSports || "");
+
+  return {
+    name: profile?.name || "",
+    email: profile?.email || "",
+    age: profile?.age === null || profile?.age === undefined ? "" : String(profile.age),
+    phone: profile?.phone || "",
+    location: profile?.location || "",
+    skillLevel: String(profile?.skillLevel || 3),
+    preferredSports: normalizedPreferredSports,
+    password: "",
+    profileImage: profile?.profileImage || "",
+    bio: profile?.bio || "",
+    socialLinks: Array.isArray(profile?.socialLinks) && profile.socialLinks.length > 0
+      ? profile.socialLinks.map((link) => ({
+          platform: link.platform || "",
+          label: link.label || "",
+          url: link.url || "",
+        }))
+      : [createEmptySocialLink()],
+  };
+}
+
+const INPUT_CLASSNAME = "w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400";
+
 function ProfilePage() {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, fetchCurrentUser, logout } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
+    age: "",
+    phone: "",
     location: "",
     skillLevel: "3",
     preferredSports: "",
@@ -28,28 +59,59 @@ function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    const saved = localStorage.getItem("user");
+    if (!saved) {
+      return;
+    }
+
+    try {
+      const parsedProfile = JSON.parse(saved);
+      setForm(mapUserToFormState(parsedProfile));
+    } catch {
+      // Ignore malformed local user cache
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async () => {
+      try {
+        const response = await api.get("/user/profile");
+        const profile = response?.data?.user || null;
+        if (!profile || !mounted) {
+          return;
+        }
+
+        setForm(mapUserToFormState(profile));
+        localStorage.setItem("user", JSON.stringify(profile));
+      } catch {
+        // Keep local cache/state as fallback when request fails.
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       return;
     }
 
-    setForm({
-      name: user.name || "",
-      email: user.email || "",
-      location: user.location || "",
-      skillLevel: String(user.skillLevel || 3),
-      preferredSports: Array.isArray(user.preferredSports) ? user.preferredSports.join(", ") : "",
-      password: "",
-      profileImage: user.profileImage || "",
-      bio: user.bio || "",
-      socialLinks: Array.isArray(user.socialLinks) && user.socialLinks.length > 0
-        ? user.socialLinks.map((link) => ({
-            platform: link.platform || "",
-            label: link.label || "",
-            url: link.url || "",
-          }))
-        : [createEmptySocialLink()],
-    });
+    setForm(mapUserToFormState(user));
   }, [user]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -58,17 +120,13 @@ function ProfilePage() {
     setIsSaving(true);
 
     try {
-      await updateProfile({
-        name: form.name,
-        email: form.email,
+      const payload = {
+        age: Number(form.age),
+        phone: form.phone || "",
+        preferredSports: form.preferredSports || "",
         location: form.location,
-        skillLevel: Number(form.skillLevel),
-        preferredSports: form.preferredSports
-          .split(",")
-          .map((sport) => sport.trim())
-          .filter(Boolean),
-        profileImage: form.profileImage,
         bio: form.bio,
+        profileImage: form.profileImage,
         socialLinks: form.socialLinks
           .map((link) => ({
             platform: String(link.platform || "").trim(),
@@ -76,10 +134,24 @@ function ProfilePage() {
             url: String(link.url || "").trim(),
           }))
           .filter((link) => link.platform && link.label && link.url),
-        ...(form.password.trim() ? { password: form.password.trim() } : {}),
-      });
+      };
 
-      setForm((currentForm) => ({ ...currentForm, password: "" }));
+      const response = await api.put("/user/profile", payload);
+      const updatedUser = response?.data?.user || null;
+
+      if (updatedUser) {
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setForm(mapUserToFormState(updatedUser));
+      } else {
+        setForm((currentForm) => ({ ...currentForm, password: "" }));
+      }
+
+      try {
+        await fetchCurrentUser();
+      } catch {
+        // Local profile state was already updated above.
+      }
+
       setSuccess("Profile updated successfully");
     } catch (requestError) {
       setError(requestError?.response?.data?.error || "Unable to update profile");
@@ -170,56 +242,66 @@ function ProfilePage() {
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
-            className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100"
+            className={INPUT_CLASSNAME}
           />
         </div>
 
-        <label className="relative">
-          <input
-            className="peer w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 outline-none transition-all duration-300 placeholder-transparent focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100"
-            type="text"
-            value={form.name}
-            onChange={(event) => setForm({ ...form, name: event.target.value })}
-            placeholder="Name"
-            required
-          />
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 rounded bg-white px-1 text-sm text-gray-500 transition-all duration-300 peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-sm peer-focus:top-0 peer-focus:text-xs peer-focus:text-cyan-600 dark:bg-zinc-800 dark:text-gray-300 dark:peer-focus:text-cyan-300">
-            Name
-          </span>
-        </label>
+        <input
+          className={INPUT_CLASSNAME}
+          type="text"
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Name"
+          required
+        />
 
-        <label className="relative">
-          <input
-            className="peer w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 outline-none transition-all duration-300 placeholder-transparent focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100"
-            type="email"
-            value={form.email}
-            onChange={(event) => setForm({ ...form, email: event.target.value })}
-            placeholder="Email"
-            required
-          />
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 rounded bg-white px-1 text-sm text-gray-500 transition-all duration-300 peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-sm peer-focus:top-0 peer-focus:text-xs peer-focus:text-cyan-600 dark:bg-zinc-800 dark:text-gray-300 dark:peer-focus:text-cyan-300">
-            Email
-          </span>
-        </label>
+        <input
+          className={INPUT_CLASSNAME}
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          placeholder="Email"
+          required
+        />
 
-        <label className="relative">
-          <input
-            className="peer w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 outline-none transition-all duration-300 placeholder-transparent focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100"
-            type="text"
-            value={form.location}
-            onChange={(event) => setForm({ ...form, location: event.target.value })}
-            placeholder="Location"
-            required
-          />
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 rounded bg-white px-1 text-sm text-gray-500 transition-all duration-300 peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-sm peer-focus:top-0 peer-focus:text-xs peer-focus:text-cyan-600 dark:bg-zinc-800 dark:text-gray-300 dark:peer-focus:text-cyan-300">
-            Location
-          </span>
-        </label>
+        <input
+          className={INPUT_CLASSNAME}
+          type="number"
+          name="age"
+          min="1"
+          max="120"
+          value={form.age}
+          onChange={handleChange}
+          placeholder="Age"
+          required
+        />
+
+        <input
+          className={INPUT_CLASSNAME}
+          type="tel"
+          name="phone"
+          value={form.phone}
+          onChange={handleChange}
+          placeholder="Phone"
+        />
+
+        <input
+          className={INPUT_CLASSNAME}
+          type="text"
+          name="location"
+          value={form.location}
+          onChange={handleChange}
+          placeholder="Location"
+          required
+        />
 
         <select
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100"
+          className={INPUT_CLASSNAME}
+          name="skillLevel"
           value={form.skillLevel}
-          onChange={(event) => setForm({ ...form, skillLevel: event.target.value })}
+          onChange={handleChange}
         >
           <option value="1">1 - Beginner</option>
           <option value="2">2 - Casual</option>
@@ -229,27 +311,30 @@ function ProfilePage() {
         </select>
 
         <input
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100"
+          className={INPUT_CLASSNAME}
           type="password"
+          name="password"
           value={form.password}
-          onChange={(event) => setForm({ ...form, password: event.target.value })}
+          onChange={handleChange}
           placeholder="New password (optional)"
           minLength={8}
         />
 
         <input
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100 md:col-span-2"
+          className={`${INPUT_CLASSNAME} md:col-span-2`}
           type="text"
+          name="preferredSports"
           value={form.preferredSports}
-          onChange={(event) => setForm({ ...form, preferredSports: event.target.value })}
+          onChange={handleChange}
           placeholder="Preferred sports (comma separated)"
         />
 
         <textarea
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-100 md:col-span-2"
+          className={`${INPUT_CLASSNAME} md:col-span-2`}
           rows={3}
+          name="bio"
           value={form.bio}
-          onChange={(event) => setForm({ ...form, bio: event.target.value })}
+          onChange={handleChange}
           placeholder="Bio"
         />
 
@@ -269,21 +354,21 @@ function ProfilePage() {
             <div key={`social-${index}`} className="grid gap-2 rounded-xl border border-gray-200 bg-white/70 p-3 md:grid-cols-[1fr_1fr_2fr_auto] dark:border-zinc-700 dark:bg-zinc-800/80">
               <input
                 type="text"
-                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-900 dark:text-gray-100"
+                className={INPUT_CLASSNAME}
                 placeholder="Platform"
                 value={link.platform}
                 onChange={(event) => updateSocialLinkField(index, "platform", event.target.value)}
               />
               <input
                 type="text"
-                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-900 dark:text-gray-100"
+                className={INPUT_CLASSNAME}
                 placeholder="Display text"
                 value={link.label}
                 onChange={(event) => updateSocialLinkField(index, "label", event.target.value)}
               />
               <input
                 type="url"
-                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition-all duration-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 dark:border-gray-700 dark:bg-zinc-900 dark:text-gray-100"
+                className={INPUT_CLASSNAME}
                 placeholder="https://..."
                 value={link.url}
                 onChange={(event) => updateSocialLinkField(index, "url", event.target.value)}

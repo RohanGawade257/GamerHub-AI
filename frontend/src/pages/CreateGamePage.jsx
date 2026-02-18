@@ -10,9 +10,28 @@ function CreateGamePage() {
     dateTime: "",
     location: "",
     maxPlayers: "10",
+    communityCode: "",
+    thumbnail: "",
   });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleThumbnailChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setForm((current) => ({ ...current, thumbnail: "" }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((current) => ({
+        ...current,
+        thumbnail: typeof reader.result === "string" ? reader.result : "",
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -25,6 +44,8 @@ function CreateGamePage() {
         location: form.location,
         dateTime: new Date(`${form.dateTime}T00:00:00.000Z`).toISOString(),
         maxPlayers: Number(form.maxPlayers),
+        thumbnail: form.thumbnail,
+        communityCode: String(form.communityCode || "").trim().toUpperCase(),
       };
 
       await api.post("/games/create", payload);
@@ -77,6 +98,33 @@ function CreateGamePage() {
           onChange={(event) => setForm({ ...form, maxPlayers: event.target.value })}
           required
         />
+
+        <input
+          className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 md:col-span-2"
+          type="text"
+          placeholder="Community Invite Code (optional)"
+          value={form.communityCode}
+          onChange={(event) => setForm({ ...form, communityCode: event.target.value.toUpperCase() })}
+        />
+
+        <div className="space-y-2 md:col-span-2">
+          <input
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+            type="file"
+            accept="image/*"
+            onChange={handleThumbnailChange}
+          />
+
+          {form.thumbnail ? (
+            <div className="aspect-video overflow-hidden rounded-xl border border-gray-300 dark:border-gray-700">
+              <img
+                src={form.thumbnail}
+                alt="Match thumbnail preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : null}
+        </div>
 
         <p className="md:col-span-2 text-sm text-gray-600 dark:text-gray-300">
           You will be added to the match automatically.

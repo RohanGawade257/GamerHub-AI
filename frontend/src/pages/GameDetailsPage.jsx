@@ -36,6 +36,14 @@ function toDateInputValue(dateTime) {
   return parsedDate.toISOString().slice(0, 10);
 }
 
+function copyToClipboard(value) {
+  if (!value || !navigator?.clipboard?.writeText) {
+    return;
+  }
+
+  void navigator.clipboard.writeText(value);
+}
+
 function buildTeamDraft(game) {
   const draft = {};
   const participants = Array.isArray(game?.participants) ? game.participants : [];
@@ -83,6 +91,16 @@ function mapTeamPlayers(rawTeam, participantMap) {
     .filter(Boolean);
 }
 
+function buildJoinForm(user) {
+  return {
+    name: String(user?.name || ""),
+    skill: user?.skillLevel === undefined || user?.skillLevel === null ? "" : String(user.skillLevel),
+    age: user?.age === undefined || user?.age === null ? "" : String(user.age),
+    phone: String(user?.phone || ""),
+    inviteCode: "",
+  };
+}
+
 function GameDetailsPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -95,6 +113,12 @@ function GameDetailsPage() {
   const [teamError, setTeamError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [joinForm, setJoinForm] = useState(() => buildJoinForm(user));
+  const [joinError, setJoinError] = useState("");
+  const [creatorPlayers, setCreatorPlayers] = useState([]);
+  const [playersError, setPlayersError] = useState("");
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isSavingTeams, setIsSavingTeams] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -118,12 +142,32 @@ function GameDetailsPage() {
 
       const participantIds = (data.game?.participants || []).map((participant) => getId(participant));
       const isParticipant = participantIds.includes(String(user?._id || ""));
+      const creatorView = getId(data.game?.createdBy) === String(user?._id || "");
+
+      if (creatorView) {
+        setPlayersError("");
+        setIsLoadingPlayers(true);
+
+        try {
+          const playersResponse = await api.get(`/games/${id}/players`);
+          setCreatorPlayers(Array.isArray(playersResponse?.data?.players) ? playersResponse.data.players : []);
+        } catch (playersRequestError) {
+          setCreatorPlayers([]);
+          setPlayersError(playersRequestError?.response?.data?.error || "Unable to load joined players");
+        } finally {
+          setIsLoadingPlayers(false);
+        }
+      } else {
+        setCreatorPlayers([]);
+        setPlayersError("");
+        setIsLoadingPlayers(false);
+      }
 
       if (isParticipant) {
         try {
           const messageResponse = await api.get(`/games/${id}/messages`);
           setMessages(Array.isArray(messageResponse.data.messages) ? messageResponse.data.messages : []);
-        } catch (_messageError) {
+        } catch {
           setMessages([]);
         }
       } else {
@@ -133,6 +177,9 @@ function GameDetailsPage() {
       setError(requestError?.response?.data?.error || "Unable to load match");
       setGame(null);
       setMessages([]);
+      setCreatorPlayers([]);
+      setPlayersError("");
+      setIsLoadingPlayers(false);
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +188,14 @@ function GameDetailsPage() {
   useEffect(() => {
     loadGame();
   }, [loadGame]);
+
+  useEffect(() => {
+    if (isJoinModalOpen) {
+      return;
+    }
+
+    setJoinForm(buildJoinForm(user));
+  }, [user, isJoinModalOpen]);
 
   useEffect(() => {
     if (!game) {
@@ -165,7 +220,9 @@ function GameDetailsPage() {
   const isParticipant = participantIds.includes(String(user?._id || ""));
   const isCreator = getId(game?.createdBy) === String(user?._id || "");
   const isFull = Number(game?.currentPlayers || 0) >= Number(game?.maxPlayers || 0);
+  const communityCode = String(game?.communityCode || "").trim();
   const shouldOpenEdit = searchParams.get("edit") === "1";
+  const shouldOpenJoin = searchParams.get("join") === "1";
 
   const participantMap = useMemo(() => {
     return new Map((game?.participants || []).map((participant) => [getId(participant), participant]));
@@ -185,15 +242,37 @@ function GameDetailsPage() {
     }
   }, [shouldOpenEdit, isCreator]);
 
-  const handleJoinGame = async () => {
+  useEffect(() => {
+    if (shouldOpenJoin && !isParticipant && !isFull) {
+      setJoinError("");
+      setJoinForm(buildJoinForm(user));
+      setIsJoinModalOpen(true);
+    }
+  }, [shouldOpenJoin, isParticipant, isFull, user]);
+
+  const handleOpenJoinModal = () => {
+    setJoinError("");
+    setJoinForm(buildJoinForm(user));
+    setIsJoinModalOpen(true);
+  };
+
+  const handleJoinGame = async (event) => {
+    event.preventDefault();
     setIsJoining(true);
-    setError("");
+    setJoinError("");
 
     try {
-      await api.post(`/games/${id}/join`);
+      await api.post(`/games/${id}/join`, {
+        name: joinForm.name,
+        skill: joinForm.skill,
+        age: Number(joinForm.age),
+        phone: joinForm.phone,
+        inviteCode: joinForm.inviteCode,
+      });
+      setIsJoinModalOpen(false);
       await loadGame();
     } catch (requestError) {
-      setError(requestError?.response?.data?.error || "Unable to join this game");
+      setJoinError(requestError?.response?.data?.error || "Unable to join this game");
     } finally {
       setIsJoining(false);
     }
@@ -307,17 +386,28 @@ function GameDetailsPage() {
                 game.createdBy?.name || "Unknown"
               )}
             </p>
+            {communityCode ? (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                <span>Community Code: {communityCode}</span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(communityCode)}
+                  className="rounded bg-white px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-gray-800 dark:text-blue-300"
+                >
+                  Copy
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2">
             {!isParticipant && Number(game.currentPlayers) < Number(game.maxPlayers) ? (
               <button
                 type="button"
-                onClick={handleJoinGame}
-                disabled={isJoining}
+                onClick={handleOpenJoinModal}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
               >
-                {isJoining ? "Joining..." : "Join Match"}
+                Join Match
               </button>
             ) : null}
 
@@ -442,6 +532,43 @@ function GameDetailsPage() {
         </div>
       </section>
 
+      {isCreator ? (
+        <section className="rounded-xl bg-white p-6 text-gray-900 shadow-md transition hover:shadow-lg dark:bg-gray-800 dark:text-gray-100">
+          <h2 className="text-xl font-semibold">Joined Players</h2>
+
+          {playersError ? <p className="mt-3 text-red-600">{playersError}</p> : null}
+
+          {isLoadingPlayers ? (
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">Loading joined players...</p>
+          ) : creatorPlayers.length === 0 ? (
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">No joined players yet.</p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="min-w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="border-b px-3 py-2 font-semibold">Name</th>
+                    <th className="border-b px-3 py-2 font-semibold">Skill</th>
+                    <th className="border-b px-3 py-2 font-semibold">Age</th>
+                    <th className="border-b px-3 py-2 font-semibold">Phone</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {creatorPlayers.map((player, index) => (
+                    <tr key={`${player.userId}-${player.joinedAt || index}`}>
+                      <td className="border-b px-3 py-2">{player.name}</td>
+                      <td className="border-b px-3 py-2">{player.skill}</td>
+                      <td className="border-b px-3 py-2">{player.age}</td>
+                      <td className="border-b px-3 py-2">{player.phone}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : null}
+
       <TeamView teamA={teamAPlayers} teamB={teamBPlayers} isManual={Boolean(game?.teams?.isManual)} />
 
       {isCreator && isFull ? (
@@ -495,6 +622,86 @@ function GameDetailsPage() {
             {isSavingTeams ? "Saving..." : "Save Manual Teams"}
           </button>
         </section>
+      ) : null}
+
+      {isJoinModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <form
+            className="w-full max-w-lg space-y-3 rounded-xl bg-white p-6 text-gray-900 shadow-xl dark:bg-gray-800 dark:text-gray-100"
+            onSubmit={handleJoinGame}
+          >
+            <h2 className="text-xl font-semibold">Join Match</h2>
+
+            <input
+              type="text"
+              value={joinForm.name}
+              onChange={(event) => setJoinForm((current) => ({ ...current, name: event.target.value }))}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              placeholder="Name"
+              required
+            />
+
+            <input
+              type="text"
+              value={joinForm.skill}
+              onChange={(event) => setJoinForm((current) => ({ ...current, skill: event.target.value }))}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              placeholder="Skill"
+              required
+            />
+
+            <input
+              type="number"
+              min="1"
+              max="120"
+              value={joinForm.age}
+              onChange={(event) => setJoinForm((current) => ({ ...current, age: event.target.value }))}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              placeholder="Age"
+              required
+            />
+
+            <input
+              type="tel"
+              value={joinForm.phone}
+              onChange={(event) => setJoinForm((current) => ({ ...current, phone: event.target.value }))}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              placeholder="Phone"
+              required
+            />
+
+            <input
+              type="text"
+              value={joinForm.inviteCode}
+              onChange={(event) => setJoinForm((current) => ({ ...current, inviteCode: event.target.value.toUpperCase() }))}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              placeholder={communityCode ? "Community Invite Code (required)" : "Community Invite Code (optional)"}
+              required={Boolean(communityCode)}
+            />
+
+            {joinError ? <p className="text-sm text-red-600">{joinError}</p> : null}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setJoinError("");
+                  setIsJoinModalOpen(false);
+                }}
+                className="rounded-lg bg-gray-200 px-4 py-2 text-gray-900 transition hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isJoining}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+              >
+                {isJoining ? "Joining..." : "Join Match"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
 
       <ChatBox matchId={id} enabled={isParticipant} initialMessages={messages} />

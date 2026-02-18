@@ -6,14 +6,19 @@ const User = require("../models/User");
 const router = express.Router();
 
 function normalizePreferredSports(preferredSports) {
+  if (typeof preferredSports === "string") {
+    return preferredSports.trim();
+  }
+
   if (!Array.isArray(preferredSports)) {
-    return [];
+    return "";
   }
 
   return preferredSports
     .map((sport) => String(sport || "").trim())
     .filter(Boolean)
-    .slice(0, 10);
+    .slice(0, 10)
+    .join(", ");
 }
 
 function normalizeSocialLinks(socialLinks) {
@@ -29,6 +34,50 @@ function normalizeSocialLinks(socialLinks) {
     }))
     .filter((entry) => entry.platform && entry.label && entry.url)
     .slice(0, 10);
+}
+
+function parseAge(age, { required = false } = {}) {
+  if (age === undefined || age === null || String(age).trim() === "") {
+    if (required) {
+      return {
+        error: "age is required",
+      };
+    }
+
+    return {
+      value: null,
+    };
+  }
+
+  const parsedAge = Number(age);
+  if (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120) {
+    return {
+      error: "age must be an integer between 1 and 120",
+    };
+  }
+
+  return {
+    value: parsedAge,
+  };
+}
+
+function normalizePhone(phone, { required = false } = {}) {
+  const normalizedPhone = String(phone || "").trim();
+  if (!normalizedPhone) {
+    if (required) {
+      return {
+        error: "phone is required",
+      };
+    }
+
+    return {
+      value: "",
+    };
+  }
+
+  return {
+    value: normalizedPhone,
+  };
 }
 
 function signToken(userId) {
@@ -52,6 +101,8 @@ router.post("/register", async (req, res) => {
       preferredSports,
       location,
       skillLevel,
+      age,
+      phone,
       profileImage,
       bio,
       socialLinks,
@@ -68,6 +119,16 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "skillLevel must be between 1 and 5" });
     }
 
+    const ageResult = parseAge(age, { required: true });
+    if (ageResult.error) {
+      return res.status(400).json({ error: ageResult.error });
+    }
+
+    const phoneResult = normalizePhone(phone);
+    if (phoneResult.error) {
+      return res.status(400).json({ error: phoneResult.error });
+    }
+
     const normalizedEmail = String(email).trim().toLowerCase();
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
@@ -81,6 +142,8 @@ router.post("/register", async (req, res) => {
       preferredSports: normalizePreferredSports(preferredSports),
       location: String(location || "Unknown").trim() || "Unknown",
       skillLevel: parsedSkillLevel,
+      age: ageResult.value,
+      phone: phoneResult.value,
       profileImage: String(profileImage || "").trim(),
       bio: String(bio || "").trim(),
       socialLinks: normalizeSocialLinks(socialLinks),

@@ -60,6 +60,10 @@ function PlayerProfilePage() {
     );
   }
 
+  const preferredSportsText = Array.isArray(player.preferredSports)
+    ? player.preferredSports.join(", ")
+    : String(player.preferredSports || "").trim();
+
   return (
     <section className="rounded-xl bg-white p-6 shadow-md dark:bg-gray-800">
       <div className="flex flex-wrap items-start gap-4">
@@ -89,9 +93,9 @@ function PlayerProfilePage() {
       <div className="mt-4 space-y-3">
         <p className="text-sm text-gray-700 dark:text-gray-200">{player.bio || "No bio provided."}</p>
 
-        {(player.preferredSports || []).length ? (
+        {preferredSportsText ? (
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            Preferred Sports: {player.preferredSports.join(", ")}
+            Preferred Sports: {preferredSportsText}
           </p>
         ) : null}
 
