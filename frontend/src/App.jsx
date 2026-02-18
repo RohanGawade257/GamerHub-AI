@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AIWidget from "./components/AIWidget";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
@@ -12,6 +12,7 @@ import Login from "./pages/LoginPage";
 import PlayerProfilePage from "./pages/PlayerProfilePage";
 import Profile from "./pages/ProfilePage";
 import Register from "./pages/RegisterPage";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
   return (
@@ -21,10 +22,12 @@ function App() {
 
         <main className="mx-auto max-w-6xl px-4 py-6 pt-24">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
             <Route path="/profile" element={<Profile />} />
             <Route path="/communities" element={<CommunitiesPage />} />
             <Route path="/join-community" element={<JoinCommunityPage />} />
@@ -32,7 +35,7 @@ function App() {
             <Route path="/player/:id" element={<PlayerProfilePage />} />
             <Route path="/create-game" element={<CreateGame />} />
             <Route path="/game/:id" element={<GameDetails />} />
-            <Route path="*" element={<Dashboard />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </main>
 

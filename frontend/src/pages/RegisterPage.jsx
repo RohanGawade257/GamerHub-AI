@@ -56,9 +56,37 @@ function RegisterPage() {
         </svg>
       </div>
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 select-none rounded-full border border-slate-500/20 opacity-10 dark:opacity-20" />
+      <div className="pointer-events-none absolute right-14 top-10 select-none opacity-10 dark:opacity-20">
+        <svg viewBox="0 0 24 24" className="h-16 w-16 text-slate-700 dark:text-slate-200" fill="currentColor">
+          <path d="m13 2-7 11h5l-2 9 9-12h-5l2-8Z" />
+        </svg>
+      </div>
+      <div className="pointer-events-none absolute left-10 bottom-14 select-none opacity-10 dark:opacity-20">
+        <svg viewBox="0 0 24 24" className="h-20 w-20 text-slate-700 dark:text-slate-200" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="12" cy="12" r="5" />
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+        </svg>
+      </div>
+      <div className="pointer-events-none absolute right-1/3 top-1/3 select-none opacity-10 dark:opacity-20">
+        <svg viewBox="0 0 24 24" className="h-14 w-14 text-slate-700 dark:text-slate-200" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M7 10h10a3 3 0 0 1 2.8 4l-1 2.4a2 2 0 0 1-1.8 1.2h-1.5l-1.2-1.8h-4.6L8.5 17.6H7a2 2 0 0 1-1.8-1.2l-1-2.4A3 3 0 0 1 7 10Z" />
+        </svg>
+      </div>
 
       <div className="relative flex min-h-screen items-center justify-center px-4">
-        <section className="mx-auto w-full max-w-md rounded-xl bg-white p-6 shadow-md transition hover:shadow-lg dark:bg-gray-800">
+        <div className="mx-auto flex w-full max-w-md flex-col items-center">
+          <div className="mb-5 text-center">
+            <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">Gamer Hub</h1>
+            <p className="max-w-md text-center text-sm text-gray-600 dark:text-gray-400">
+              Gamer Hub is a community-driven gaming platform where players create matches, build squads, join communities, and connect with teammates in real time.
+            </p>
+            <p className="mt-2 max-w-md text-center text-sm text-gray-600 dark:text-gray-400">
+              Our mission: unite gamers, organize matches, and grow gaming communities.
+            </p>
+          </div>
+
+          <section className="w-full rounded-xl bg-white p-6 shadow-md transition hover:shadow-lg dark:bg-gray-800">
           <h1 className="text-2xl font-semibold">Register</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Create an account to join local matches.</p>
 
@@ -127,7 +155,8 @@ function RegisterPage() {
               Sign in
             </Link>
           </p>
-        </section>
+          </section>
+        </div>
       </div>
     </section>
   );

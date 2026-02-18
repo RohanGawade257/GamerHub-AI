@@ -57,7 +57,7 @@ function Navbar() {
         <Link to={token ? "/dashboard" : "/login"} className="group inline-flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,.9)] transition-all duration-300 group-hover:scale-125" />
           <span className="bg-gradient-to-r from-indigo-600 via-blue-500 to-cyan-500 bg-clip-text text-lg font-extrabold tracking-wide text-transparent dark:from-indigo-300 dark:via-cyan-300 dark:to-blue-300">
-            Gamer Community
+            Gamer-Hub
           </span>
         </Link>
 
