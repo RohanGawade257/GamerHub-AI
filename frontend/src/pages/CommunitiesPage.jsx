@@ -56,7 +56,7 @@ function CommunitiesPage() {
   };
 
   const inviteCode = String(createdCommunity?.inviteCode || "");
-  const shareLink = inviteCode ? `http://localhost:5173/join-community?code=${encodeURIComponent(inviteCode)}` : "";
+  const shareLink = inviteCode ? `https://gamer-hub-ai.vercel.app/join-community?code=${encodeURIComponent(inviteCode)}` : "";
 
   const copyText = async (textToCopy) => {
     try {

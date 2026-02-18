@@ -71,7 +71,7 @@ function CommunityDetailsPage() {
 
   const inviteCode = String(community?.inviteCode || "");
   const inviteLink = inviteCode
-    ? `http://localhost:5173/join-community?code=${encodeURIComponent(inviteCode)}`
+    ? `https://gamer-hub-ai.vercel.app/join-community?code=${encodeURIComponent(inviteCode)}`
     : "";
 
   if (!token) {

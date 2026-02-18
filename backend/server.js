@@ -22,7 +22,7 @@ const sportsServer = http.createServer(sportsApp);
 const AI_PORT = Number(process.env.PORT || 5000);
 const SPORTS_PORT = Number(process.env.SPORTS_PORT || 5001);
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/community_sports";
-const SPORTS_CORS_ORIGIN = process.env.SPORTS_CORS_ORIGIN || "http://localhost:5173";
+const SPORTS_CORS_ORIGIN = process.env.SPORTS_CORS_ORIGIN || "https://gamer-hub-ai.vercel.app";
 
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = "dev_jwt_secret_change_me";
