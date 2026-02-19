@@ -34,6 +34,13 @@ function AIWidget({ apiUrl }) {
     };
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen]);
+
   const sendMessage = async () => {
     const trimmed = input.trim();
     if (!trimmed || isLoading || isSendingRef.current) {
@@ -122,23 +129,32 @@ function AIWidget({ apiUrl }) {
       </button>
 
       <aside
-        className={`fixed bottom-24 right-6 z-50 h-[520px] w-[23rem] rounded-2xl border border-white/60 bg-white/85 text-gray-900 shadow-2xl shadow-blue-200/40 backdrop-blur-xl transition-all duration-300 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-gray-100 dark:shadow-cyan-950/30 ${
+        className={`fixed bottom-0 right-0 z-50 flex h-full w-full flex-col overflow-hidden rounded-none border border-white/60 bg-white text-gray-900 shadow-xl transition-all duration-300 md:bottom-4 md:right-4 md:h-[520px] md:w-[380px] md:rounded-xl dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-100 ${
           isOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
         }`}
       >
-        <header className="flex items-center justify-between rounded-t-2xl border-b border-gray-200/70 bg-gradient-to-r from-indigo-600 to-cyan-500 px-4 py-3 text-white dark:border-zinc-700">
+        <button
+          type="button"
+          onClick={() => setIsOpen(false)}
+          aria-label="Close chat"
+          className="absolute right-3 top-3 rounded-lg px-2 py-1 text-sm font-bold text-white/90 transition-all duration-300 hover:bg-white/20 md:hidden"
+        >
+          X
+        </button>
+
+        <header className="flex items-center justify-between border-b border-gray-200/70 bg-gradient-to-r from-indigo-600 to-cyan-500 px-4 py-3 text-white dark:border-zinc-700 md:rounded-t-xl">
           <h2 className="text-base font-black tracking-wide">GameBot</h2>
           <button
             type="button"
             onClick={() => setIsOpen(false)}
             aria-label="Close chat"
-            className="rounded-lg px-2 py-1 text-sm font-bold text-white/90 transition-all duration-300 hover:scale-105 hover:bg-white/20"
+            className="hidden rounded-lg px-2 py-1 text-sm font-bold text-white/90 transition-all duration-300 hover:scale-105 hover:bg-white/20 md:inline-flex"
           >
             X
           </button>
         </header>
 
-        <div className="h-[390px] space-y-2 overflow-y-auto bg-white/40 px-4 py-3 dark:bg-zinc-900/45">
+        <div className="flex-1 space-y-2 overflow-y-auto overscroll-contain bg-white/40 px-4 py-3 dark:bg-zinc-900/45">
           {messages.length === 0 && (
             <div className="rounded-xl border border-cyan-200 bg-white/85 p-3 text-sm text-gray-600 shadow-sm dark:border-cyan-500/30 dark:bg-zinc-800/85 dark:text-gray-300">
               Ask anything. Your squad AI is online.
@@ -150,10 +166,10 @@ function AIWidget({ apiUrl }) {
               key={`${message.role}-${index}`}
               className={`rounded-lg px-3 py-2 text-sm ${
                 message.role === "user"
-                  ? "ml-auto max-w-[85%] rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25"
+                  ? "ml-auto max-w-[85%] break-words rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25"
                   : message.role === "error"
-                    ? "max-w-[90%] rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-900/30 dark:text-red-200"
-                    : "max-w-[90%] rounded-xl border border-gray-200 bg-white/85 text-gray-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-100"
+                    ? "max-w-[90%] break-words rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-900/30 dark:text-red-200"
+                    : "max-w-[90%] break-words rounded-xl border border-gray-200 bg-white/85 text-gray-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-100"
               }`}
             >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
@@ -168,7 +184,7 @@ function AIWidget({ apiUrl }) {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="flex gap-2 border-t border-gray-200/70 bg-white/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/80">
+        <div className="sticky bottom-0 flex gap-2 border-t border-gray-200/70 bg-inherit p-3 dark:border-zinc-700">
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}

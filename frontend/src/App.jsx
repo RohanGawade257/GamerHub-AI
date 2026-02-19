@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import AIWidget from "./components/AIWidget";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
@@ -15,28 +15,38 @@ import Profile from "./pages/ProfilePage";
 import Register from "./pages/RegisterPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
+function AuthenticatedLayout() {
+  return (
+    <div className="pt-[72px] md:pt-[80px]">
+      <Outlet />
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-cyan-100 text-gray-900 dark:bg-gradient-to-br dark:from-zinc-950 dark:via-zinc-900 dark:to-indigo-950 dark:text-gray-100">
         <Navbar />
 
-        <main className="mx-auto max-w-6xl px-4 pb-6 pt-20">
+        <main className="mx-auto max-w-6xl px-4 pb-6">
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
+            <Route element={<AuthenticatedLayout />}>
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+              </Route>
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/communities" element={<CommunitiesPage />} />
+              <Route path="/join-community" element={<JoinCommunityPage />} />
+              <Route path="/community/:id" element={<CommunityDetailsPage />} />
+              <Route path="/player/:id" element={<PlayerProfilePage />} />
+              <Route path="/create-game" element={<CreateGame />} />
+              <Route path="/game/:id" element={<GameDetails />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/communities" element={<CommunitiesPage />} />
-            <Route path="/join-community" element={<JoinCommunityPage />} />
-            <Route path="/community/:id" element={<CommunityDetailsPage />} />
-            <Route path="/player/:id" element={<PlayerProfilePage />} />
-            <Route path="/create-game" element={<CreateGame />} />
-            <Route path="/game/:id" element={<GameDetails />} />
-            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 

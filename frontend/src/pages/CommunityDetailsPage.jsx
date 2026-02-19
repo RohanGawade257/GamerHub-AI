@@ -101,7 +101,7 @@ function CommunityDetailsPage() {
   const copyText = async (textToCopy) => {
     try {
       await navigator.clipboard.writeText(textToCopy);
-    } catch (_error) {
+    } catch {
       setError("Unable to copy to clipboard");
     }
   };
