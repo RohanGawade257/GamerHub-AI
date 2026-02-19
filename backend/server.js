@@ -114,11 +114,9 @@ function startSportsServer() {
   });
 }
 
-function startAiServer(attachSocket) {
-  if (attachSocket) {
-    initializeSocket(aiServer);
-    console.log(`[socket] Socket.IO attached to AI server on port ${AI_PORT}`);
-  }
+function startAiServer() {
+  initializeSocket(aiServer);
+  console.log(`[socket] Socket.IO attached to AI server on port ${AI_PORT}`);
 
   aiServer.listen(AI_PORT, () => {
     console.log("AI SERVER STARTED");
@@ -141,12 +139,12 @@ async function startServers() {
   scheduleExpiredMatchCleanup(console);
 
   if (RUN_SINGLE_PORT_SOCKET) {
-    startAiServer(true);
+    startAiServer();
     return;
   }
 
   startSportsServer();
-  startAiServer(false);
+  startAiServer();
 }
 
 void startServers().catch((error) => {
