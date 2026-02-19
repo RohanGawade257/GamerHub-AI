@@ -1,4 +1,3 @@
-const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 
 const Game = require("./models/Game");
@@ -74,24 +73,7 @@ async function setUserPresence(userId, isOnline) {
   }
 }
 
-function initializeSocket(server) {
-  const defaultSocketOrigins = ["http://localhost:5173", "https://gamer-hub-ai.vercel.app"];
-  const allowedOrigins = String(
-    process.env.SPORTS_CORS_ORIGIN || process.env.CORS_ORIGIN || defaultSocketOrigins.join(","),
-  )
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-  const allowAllOrigins = allowedOrigins.includes("*");
-
-  const io = new Server(server, {
-    cors: {
-      origin: allowAllOrigins ? true : allowedOrigins,
-      methods: ["GET", "POST"],
-      credentials: true,
-    },
-  });
-
+function initializeSocket(io) {
   io.use(async (socket, next) => {
     try {
       const token = extractSocketToken(socket);
