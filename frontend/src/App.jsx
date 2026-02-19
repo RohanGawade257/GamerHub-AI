@@ -45,8 +45,8 @@ function App() {
               <Route path="/player/:id" element={<PlayerProfilePage />} />
               <Route path="/create-game" element={<CreateGame />} />
               <Route path="/game/:id" element={<GameDetails />} />
-              <Route path="*" element={<NotFound />} />
             </Route>
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 

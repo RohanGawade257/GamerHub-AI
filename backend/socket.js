@@ -75,15 +75,20 @@ async function setUserPresence(userId, isOnline) {
 }
 
 function initializeSocket(server) {
-  const allowedOrigins = String(process.env.SPORTS_CORS_ORIGIN || "*")
+  const defaultSocketOrigins = ["http://localhost:5173", "https://gamer-hub-ai.vercel.app"];
+  const allowedOrigins = String(
+    process.env.SPORTS_CORS_ORIGIN || process.env.CORS_ORIGIN || defaultSocketOrigins.join(","),
+  )
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const allowAllOrigins = allowedOrigins.includes("*");
 
   const io = new Server(server, {
     cors: {
-      origin: allowedOrigins.includes("*") ? "*" : allowedOrigins,
+      origin: allowAllOrigins ? true : allowedOrigins,
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
@@ -108,6 +113,7 @@ function initializeSocket(server) {
   });
 
   io.on("connection", (socket) => {
+    console.log("Socket connected:", socket.id);
     const userId = String(socket.user._id);
     const previousConnections = activeUserSockets.get(userId) || 0;
     activeUserSockets.set(userId, previousConnections + 1);

@@ -34,13 +34,6 @@ function AIWidget({ apiUrl }) {
     };
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "auto";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen]);
-
   const sendMessage = async () => {
     const trimmed = input.trim();
     if (!trimmed || isLoading || isSendingRef.current) {
@@ -129,7 +122,7 @@ function AIWidget({ apiUrl }) {
       </button>
 
       <aside
-        className={`fixed bottom-0 right-0 z-50 flex h-full w-full flex-col overflow-hidden rounded-none border border-white/60 bg-white text-gray-900 shadow-xl transition-all duration-300 md:bottom-4 md:right-4 md:h-[520px] md:w-[380px] md:rounded-xl dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-100 ${
+        className={`fixed bottom-0 right-0 z-50 flex h-[50vh] w-full flex-col overflow-hidden rounded-t-xl bg-white text-gray-900 shadow-xl transition-all duration-300 md:bottom-4 md:right-4 md:h-[520px] md:w-[380px] md:rounded-xl dark:bg-zinc-900 dark:text-gray-100 ${
           isOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
         }`}
       >
@@ -154,7 +147,7 @@ function AIWidget({ apiUrl }) {
           </button>
         </header>
 
-        <div className="flex-1 space-y-2 overflow-y-auto overscroll-contain bg-white/40 px-4 py-3 dark:bg-zinc-900/45">
+        <div className="flex-1 overflow-y-auto space-y-2 bg-white/40 px-4 py-3 dark:bg-zinc-900/45">
           {messages.length === 0 && (
             <div className="rounded-xl border border-cyan-200 bg-white/85 p-3 text-sm text-gray-600 shadow-sm dark:border-cyan-500/30 dark:bg-zinc-800/85 dark:text-gray-300">
               Ask anything. Your squad AI is online.

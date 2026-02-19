@@ -17,12 +17,14 @@ const { loadKnowledgeEmbeddings } = require("./services/embedder");
 
 const aiApp = express();
 const sportsApp = express();
+const aiServer = http.createServer(aiApp);
 const sportsServer = http.createServer(sportsApp);
 
 const AI_PORT = Number(process.env.PORT || 5000);
-const SPORTS_PORT = Number(process.env.SPORTS_PORT || 5001);
+const SPORTS_PORT = Number(process.env.SPORTS_PORT || process.env.PORT || 5001);
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/community_sports";
 const SPORTS_CORS_ORIGIN = process.env.SPORTS_CORS_ORIGIN || "https://gamer-hub-ai.vercel.app";
+const RUN_SINGLE_PORT_SOCKET = SPORTS_PORT === AI_PORT;
 
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = "dev_jwt_secret_change_me";
@@ -96,36 +98,57 @@ sportsApp.use((error, _req, res, _next) => {
   return res.status(statusCode).json({ error: message });
 });
 
-async function startSportsServer() {
-  await mongoose.connect(MONGO_URI);
-  initializeSocket(sportsServer);
-  scheduleExpiredMatchCleanup(console);
-
-  sportsServer.listen(SPORTS_PORT, () => {
-    console.log(`Sports backend running on http://localhost:${SPORTS_PORT}`);
-  });
-}
-
-void startSportsServer().catch((error) => {
-  console.error("Failed to start sports backend:", error);
-});
-
-aiApp.listen(AI_PORT, async () => {
-  console.log("AI SERVER STARTED");
-  console.log(`AI backend running on port ${AI_PORT}`);
-  console.log(
-    "GROQ_API_KEY loaded:",
-    process.env.GROQ_API_KEY ? "yes" : "no",
-  );
-  console.log(
-    "GROQ_MODEL configured:",
-    process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
-  );
-
+async function preloadKnowledgeBase() {
   try {
     await loadKnowledgeEmbeddings();
     console.log("Knowledge base embeddings loaded");
   } catch (error) {
     console.error("Failed to preload knowledge base embeddings:", error);
   }
+}
+
+function startSportsServer() {
+  initializeSocket(sportsServer);
+  sportsServer.listen(SPORTS_PORT, () => {
+    console.log(`Sports backend running on http://localhost:${SPORTS_PORT}`);
+  });
+}
+
+function startAiServer(attachSocket) {
+  if (attachSocket) {
+    initializeSocket(aiServer);
+    console.log(`[socket] Socket.IO attached to AI server on port ${AI_PORT}`);
+  }
+
+  aiServer.listen(AI_PORT, () => {
+    console.log("AI SERVER STARTED");
+    console.log(`AI backend running on port ${AI_PORT}`);
+    console.log(
+      "GROQ_API_KEY loaded:",
+      process.env.GROQ_API_KEY ? "yes" : "no",
+    );
+    console.log(
+      "GROQ_MODEL configured:",
+      process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    );
+
+    void preloadKnowledgeBase();
+  });
+}
+
+async function startServers() {
+  await mongoose.connect(MONGO_URI);
+  scheduleExpiredMatchCleanup(console);
+
+  if (RUN_SINGLE_PORT_SOCKET) {
+    startAiServer(true);
+    return;
+  }
+
+  startSportsServer();
+  startAiServer(false);
+}
+
+void startServers().catch((error) => {
+  console.error("Failed to start backend services:", error);
 });

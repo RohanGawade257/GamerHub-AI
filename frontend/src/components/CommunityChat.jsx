@@ -53,7 +53,6 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
     }
 
     const socket = io(SPORTS_API_URL, {
-      transports: ["websocket"],
       auth: { token },
     });
 
