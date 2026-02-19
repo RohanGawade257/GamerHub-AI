@@ -76,29 +76,8 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
     setError("");
 
     socket.on("connect", () => {
-      const joinPayload = { communityId };
-      socket.timeout(10000).emit("join-community", joinPayload, (joinError, joinAck) => {
-        if (!joinError && joinAck?.ok) {
-          setStatus("online");
-          return;
-        }
-
-        socket.timeout(10000).emit("joinCommunity", joinPayload, (fallbackError, fallbackAck) => {
-          if (fallbackError || !fallbackAck?.ok) {
-            setStatus("error");
-            setError(
-              fallbackError?.message
-                || joinError?.message
-                || fallbackAck?.error
-                || joinAck?.error
-                || "Unable to join community room",
-            );
-            return;
-          }
-
-          setStatus("online");
-        });
-      });
+      setStatus("online");
+      socket.emit("joinCommunity", { communityId });
     });
 
     const handleIncomingMessage = (message) => {
@@ -142,24 +121,7 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
       return;
     }
 
-    const payload = { communityId, message };
-    socketRef.current.timeout(10000).emit("send-message", payload, (sendError, sendAck) => {
-      if (!sendError && sendAck?.ok) {
-        return;
-      }
-
-      socketRef.current.timeout(10000).emit("sendCommunityMessage", payload, (fallbackError, fallbackAck) => {
-        if (fallbackError || !fallbackAck?.ok) {
-          setError(
-            fallbackError?.message
-              || sendError?.message
-              || fallbackAck?.error
-              || sendAck?.error
-              || "Unable to send message",
-          );
-        }
-      });
-    });
+    socketRef.current.emit("sendCommunityMessage", { communityId, message });
 
     setInput("");
   };
