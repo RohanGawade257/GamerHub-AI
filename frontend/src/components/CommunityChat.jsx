@@ -52,6 +52,7 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
       return undefined;
     }
 
+    console.log("Socket token:", token);
     const socket = io(SPORTS_API_URL, {
       withCredentials: true,
       auth: { token },

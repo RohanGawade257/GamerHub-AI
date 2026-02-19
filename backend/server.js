@@ -112,6 +112,7 @@ async function startServer() {
 
   server.listen(PORT, () => {
     console.log("Server running on port", PORT);
+    console.log("JWT_SECRET length:", process.env.JWT_SECRET?.length);
     console.log("Socket.IO transports:", "polling, websocket");
     console.log(
       "GROQ_API_KEY loaded:",

@@ -56,6 +56,7 @@ function ChatBox({ matchId, enabled, initialMessages }) {
       return undefined;
     }
 
+    console.log("Socket token:", token);
     const socket = io(SPORTS_API_URL, {
       withCredentials: true,
       auth: {
