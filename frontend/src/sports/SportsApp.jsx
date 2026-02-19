@@ -18,7 +18,7 @@ function SportsApp() {
         <BrowserRouter>
           <div>
             <Navbar />
-            <main>
+            <main className="mx-auto max-w-6xl px-4 pb-6 pt-20">
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/login" element={<LoginPage />} />

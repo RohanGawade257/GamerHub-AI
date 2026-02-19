@@ -9,6 +9,7 @@ import Dashboard from "./pages/DashboardPage";
 import GameDetails from "./pages/GameDetailsPage";
 import JoinCommunityPage from "./pages/JoinCommunityPage";
 import Login from "./pages/LoginPage";
+import NotFound from "./pages/NotFound";
 import PlayerProfilePage from "./pages/PlayerProfilePage";
 import Profile from "./pages/ProfilePage";
 import Register from "./pages/RegisterPage";
@@ -20,7 +21,7 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-cyan-100 text-gray-900 dark:bg-gradient-to-br dark:from-zinc-950 dark:via-zinc-900 dark:to-indigo-950 dark:text-gray-100">
         <Navbar />
 
-        <main className="mx-auto max-w-6xl px-4 py-6 pt-24">
+        <main className="mx-auto max-w-6xl px-4 pb-6 pt-20">
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
@@ -35,7 +36,7 @@ function App() {
             <Route path="/player/:id" element={<PlayerProfilePage />} />
             <Route path="/create-game" element={<CreateGame />} />
             <Route path="/game/:id" element={<GameDetails />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 
