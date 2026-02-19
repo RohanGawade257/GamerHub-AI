@@ -28,6 +28,16 @@ function getMessageId(message) {
   return String(message?._id || `${message?.senderId}-${message?.timestamp}`);
 }
 
+function resolveSocketOrigin(rawUrl) {
+  const fallbackOrigin = window.location.origin;
+  try {
+    const parsedUrl = new URL(String(rawUrl || "").trim(), fallbackOrigin);
+    return parsedUrl.origin;
+  } catch {
+    return fallbackOrigin;
+  }
+}
+
 function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate }) {
   const { token, user } = useAuth();
   const [messages, setMessages] = useState(() => initialMessages || []);
@@ -52,10 +62,9 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
       return undefined;
     }
 
+    const socketBaseUrl = resolveSocketOrigin(SPORTS_API_URL);
     console.log("Socket token:", token);
-    const socket = io(SPORTS_API_URL, {
-      path: "/socket.io",
-      transports: ["websocket"],
+    const socket = io(socketBaseUrl, {
       withCredentials: true,
       auth: { token },
     });
@@ -65,18 +74,32 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
     setError("");
 
     socket.on("connect", () => {
-      socket.emit("join-community", { communityId }, (ack) => {
-        if (!ack?.ok) {
-          setStatus("error");
-          setError(ack?.error || "Unable to join community room");
+      const joinPayload = { communityId };
+      socket.timeout(10000).emit("join-community", joinPayload, (joinError, joinAck) => {
+        if (!joinError && joinAck?.ok) {
+          setStatus("online");
           return;
         }
 
-        setStatus("online");
+        socket.timeout(10000).emit("joinCommunity", joinPayload, (fallbackError, fallbackAck) => {
+          if (fallbackError || !fallbackAck?.ok) {
+            setStatus("error");
+            setError(
+              fallbackError?.message
+                || joinError?.message
+                || fallbackAck?.error
+                || joinAck?.error
+                || "Unable to join community room",
+            );
+            return;
+          }
+
+          setStatus("online");
+        });
       });
     });
 
-    socket.on("receive-message", (message) => {
+    const handleIncomingMessage = (message) => {
       setMessages((current) => {
         const exists = current.some((entry) => getMessageId(entry) === getMessageId(message));
         if (exists) {
@@ -84,7 +107,10 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
         }
         return [...current, message];
       });
-    });
+    };
+
+    socket.on("receive-message", handleIncomingMessage);
+    socket.on("communityMessage", handleIncomingMessage);
 
     socket.on("presence-update", (payload) => {
       if (typeof onPresenceUpdate === "function") {
@@ -114,10 +140,23 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
       return;
     }
 
-    socketRef.current.emit("send-message", { communityId, message }, (ack) => {
-      if (!ack?.ok) {
-        setError(ack?.error || "Unable to send message");
+    const payload = { communityId, message };
+    socketRef.current.timeout(10000).emit("send-message", payload, (sendError, sendAck) => {
+      if (!sendError && sendAck?.ok) {
+        return;
       }
+
+      socketRef.current.timeout(10000).emit("sendCommunityMessage", payload, (fallbackError, fallbackAck) => {
+        if (fallbackError || !fallbackAck?.ok) {
+          setError(
+            fallbackError?.message
+              || sendError?.message
+              || fallbackAck?.error
+              || sendAck?.error
+              || "Unable to send message",
+          );
+        }
+      });
     });
 
     setInput("");

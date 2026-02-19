@@ -124,6 +124,9 @@ function CommunityDetailsPage() {
           if (getId(member) !== userId) {
             return member;
           }
+          if (!member || typeof member !== "object") {
+            return member;
+          }
           return { ...member, isOnline };
         }),
       };
