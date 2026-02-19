@@ -65,6 +65,8 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
     const socketBaseUrl = resolveSocketOrigin(SPORTS_API_URL);
     console.log("Socket token:", token);
     const socket = io(socketBaseUrl, {
+      path: "/socket.io",
+      transports: ["websocket"],
       withCredentials: true,
       auth: { token },
     });
