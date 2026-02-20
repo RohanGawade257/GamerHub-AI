@@ -197,6 +197,8 @@ function initializeSocket(io) {
         }
 
         socket.join(`community:${communityId}`);
+        const onlineUsers = getOnlineUserIds();
+        socket.emit("presence-sync", onlineUsers);
 
         if (typeof callback === "function") {
           callback({ ok: true });

@@ -113,6 +113,24 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
       }
     });
 
+    socket.on("presence-sync", (userIds) => {
+      const normalizedUserIds = userIds.map(String);
+      setOnlineUsers((current) => {
+        const next = new Set(normalizedUserIds);
+        if (typeof onPresenceUpdate === "function") {
+          current.forEach((existingUserId) => {
+            if (!next.has(existingUserId)) {
+              onPresenceUpdate({ userId: existingUserId, isOnline: false });
+            }
+          });
+          normalizedUserIds.forEach((onlineUserId) => {
+            onPresenceUpdate({ userId: onlineUserId, isOnline: true });
+          });
+        }
+        return next;
+      });
+    });
+
     socket.on("disconnect", () => {
       setStatus("offline");
     });
