@@ -7,7 +7,7 @@ const THEME_KEY = "theme";
 
 function linkClassName({ isActive }) {
   return [
-    "rounded-xl border px-3 py-1.5 text-sm font-semibold tracking-wide transition-all duration-300",
+    "rounded-xl border px-3 py-1.5 text-sm font-semibold tracking-wide transition-all duration-300 lg:px-2 lg:py-0.5 lg:text-xs",
     isActive
       ? "border-cyan-400/70 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-[0_0_0_1px_rgba(56,189,248,.35),0_0_20px_rgba(56,189,248,.35)]"
       : "border-transparent bg-white/70 text-slate-700 hover:-translate-y-0.5 hover:scale-105 hover:bg-white hover:shadow-xl dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:bg-zinc-700",
@@ -55,10 +55,10 @@ function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 border-b border-white/40 bg-white/70 shadow-xl shadow-indigo-100/40 backdrop-blur-xl dark:border-zinc-700/70 dark:bg-zinc-950/65 dark:shadow-cyan-950/30">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link to={token ? "/dashboard" : "/login"} className="group inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,.9)] transition-all duration-300 group-hover:scale-125" />
-          <span className="bg-gradient-to-r from-indigo-600 via-blue-500 to-cyan-500 bg-clip-text text-lg font-extrabold tracking-wide text-transparent dark:from-indigo-300 dark:via-cyan-300 dark:to-blue-300">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 lg:flex-nowrap lg:items-start lg:gap-1.5 lg:px-3 lg:py-1">
+        <Link to={token ? "/dashboard" : "/login"} className="group inline-flex items-center gap-2 lg:self-start lg:gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,.9)] transition-all duration-300 group-hover:scale-125 lg:h-2 lg:w-2" />
+          <span className="bg-gradient-to-r from-indigo-600 via-blue-500 to-cyan-500 bg-clip-text text-lg font-extrabold tracking-wide text-transparent dark:from-indigo-300 dark:via-cyan-300 dark:to-blue-300 lg:text-base">
             Gamer-Hub
           </span>
         </Link>
@@ -77,7 +77,7 @@ function Navbar() {
           </svg>
         </button>
 
-        <div className="hidden flex-wrap items-center gap-2 md:flex">
+        <div className="hidden flex-wrap items-center gap-2 md:flex lg:ml-auto lg:self-start lg:gap-1.5">
           {token ? (
             <>
               <NavLink to="/dashboard" className={linkClassName}>
@@ -113,7 +113,7 @@ function Navbar() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="rounded-xl border border-white/60 bg-white/80 px-4 py-1.5 text-sm font-semibold text-gray-900 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:bg-white hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-gray-100 dark:hover:bg-zinc-700"
+            className="rounded-xl border border-white/60 bg-white/80 px-4 py-1.5 text-sm font-semibold text-gray-900 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:bg-white hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-gray-100 dark:hover:bg-zinc-700 lg:px-3 lg:py-1 lg:text-xs"
             aria-label="Toggle theme"
           >
             Toggle Theme
@@ -122,7 +122,7 @@ function Navbar() {
           <button
             type="button"
             onClick={openAiAssistant}
-            className="rounded-xl border border-cyan-400/60 bg-gradient-to-r from-indigo-600 to-cyan-500 px-4 py-1.5 text-sm font-semibold text-white shadow-[0_0_18px_rgba(56,189,248,.45)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_0_24px_rgba(56,189,248,.65)]"
+            className="rounded-xl border border-cyan-400/60 bg-gradient-to-r from-indigo-600 to-cyan-500 px-4 py-1.5 text-sm font-semibold text-white shadow-[0_0_18px_rgba(56,189,248,.45)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_0_24px_rgba(56,189,248,.65)] lg:px-3 lg:py-1 lg:text-xs"
           >
             AI
           </button>
@@ -131,16 +131,16 @@ function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:shadow-xl hover:shadow-indigo-500/35"
+              className="rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:shadow-xl hover:shadow-indigo-500/35 lg:px-3 lg:py-1 lg:text-xs"
             >
               Logout
             </button>
           )}
 
           {token ? (
-            <div className="ml-2 flex items-center gap-3 rounded-xl border border-white/60 bg-white px-4 py-1.5 shadow-md dark:border-zinc-700 dark:bg-zinc-800">
+            <div className="ml-2 flex items-center gap-3 rounded-xl border border-white/60 bg-white px-4 py-1.5 shadow-md dark:border-zinc-700 dark:bg-zinc-800 lg:ml-1 lg:gap-2 lg:px-3 lg:py-1">
               <div className="relative">
-                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-200">
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-200 lg:h-7 lg:w-7 lg:text-xs">
                   {profileImage ? (
                     <img src={profileImage} alt={`${displayName} avatar`} className="h-full w-full object-cover" />
                   ) : (
@@ -149,7 +149,7 @@ function Navbar() {
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-zinc-800" />
               </div>
-              <span className="text-lg font-semibold text-slate-800 dark:text-zinc-100">{displayName}</span>
+              <span className="text-lg font-semibold text-slate-800 dark:text-zinc-100 lg:text-sm">{displayName}</span>
             </div>
           ) : null}
         </div>
