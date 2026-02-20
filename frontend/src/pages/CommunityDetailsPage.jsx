@@ -21,6 +21,7 @@ function CommunityDetailsPage() {
   const { token, user } = useAuth();
   const [community, setCommunity] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingCommunity, setIsEditingCommunity] = useState(false);
@@ -112,6 +113,16 @@ function CommunityDetailsPage() {
     if (!userId) {
       return;
     }
+
+    setOnlineUsers((current) => {
+      const next = new Set(current);
+      if (isOnline) {
+        next.add(userId);
+      } else {
+        next.delete(userId);
+      }
+      return next;
+    });
 
     setCommunity((current) => {
       if (!current) {
@@ -254,7 +265,7 @@ function CommunityDetailsPage() {
           initialMessages={messages}
           onPresenceUpdate={handlePresenceUpdate}
         />
-        <MemberList members={community.members || []} />
+        <MemberList members={community.members || []} onlineUsers={onlineUsers} />
       </div>
 
       {isEditingCommunity ? (

@@ -44,6 +44,7 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
   const [input, setInput] = useState("");
   const [status, setStatus] = useState("offline");
   const [error, setError] = useState("");
+  const [_onlineUsers, setOnlineUsers] = useState(new Set());
   const socketRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -94,8 +95,21 @@ function CommunityChat({ communityId, canChat, initialMessages, onPresenceUpdate
     socket.on("communityMessage", handleIncomingMessage);
 
     socket.on("presence-update", (payload) => {
+      const userId = String(payload?.userId || "");
+      const isOnline = Boolean(payload?.isOnline);
+      if (userId) {
+        setOnlineUsers((current) => {
+          const next = new Set(current);
+          if (isOnline) {
+            next.add(userId);
+          } else {
+            next.delete(userId);
+          }
+          return next;
+        });
+      }
       if (typeof onPresenceUpdate === "function") {
-        onPresenceUpdate(payload);
+        onPresenceUpdate({ ...payload, userId, isOnline });
       }
     });
 
